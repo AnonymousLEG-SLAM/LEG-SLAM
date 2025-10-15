@@ -1,0 +1,16 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Model Parameters
+#--------------------------------------------------------------------------------------------
+
+Encoder.Type: "DinoV2"
+Encoder.Path: "encoder_models/dinov2.onnx"
+Encoder.InputImage.Width: 518
+Encoder.InputImage.Height: 518
+Encoder.OutputFeatures.Pixels: 1369
+Encoder.OutputFeatures.EmbeddingSize: 768
+
+PixelwiseCompressor.Type: "PCA"
+PixelwiseCompressor.Path: "encoder_models/ckpts_text_scannet_20_ae_shallow.onnx"
+PixelwiseCompressor.CompressedEmbeddingSize: 64

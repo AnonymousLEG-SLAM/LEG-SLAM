@@ -1,0 +1,70 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts and cache
+**/build/
+build_debug/
+bin/
+lib/
+*.o
+*.so
+*.a
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
+*.make
+
+# Downloaded dependencies (will be downloaded in Docker)
+opencv-build/
+onnxruntime-linux-x64-gpu-*/
+libtorch/
+libtorch-cu118-*.zip
+
+# Results and evaluation files
+results/
+eval_*/
+eval_render_*/
+*.log
+lerf_results/
+
+# Large files
+*.zip
+*.tar.gz
+*.tgz
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation and help files
+help.txt
+imgui.ini
+
+# Video files
+ovs_videos/
+ovs_videos_replica/
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+DOCKER_README.md
+
+# Keep environment files for conda
+# environment.yml
+# requirements.txt
+
+# Large model files (optional - uncomment if weights are too large)
+# weights/ 

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  legs-slam-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      # Mount your data directory
+      - ./data:/workspace/data:ro
+      # Mount results directory for output
+      - ./results:/workspace/results
+      # Mount configuration files if needed
+      - ./cfg:/workspace/cfg:ro
+      # Mount videos directory for API output
+      - ./ovs_videos:/workspace/ovs_videos
+    working_dir: /workspace
+    ports:
+      - "8005:8005"
+    command: conda run -n legs-slam python eval/find_objects_api.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu] 
