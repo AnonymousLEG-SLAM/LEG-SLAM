@@ -21,161 +21,22 @@ LEG-SLAM is an **open-vocabulary** 3D SLAM system that integrates **3D Gaussian 
 4. **3D Gaussian Splatting**: Constructs a continuous, high-resolution 3D scene representation.
 5. **Semantic Querying**: Computes **cosine similarity** between scene embeddings and textual queries, generating **semantic heatmaps**.
 
-## 🐳 Docker Setup
-
-### Prerequisites
-
-- Docker with NVIDIA GPU support (nvidia-docker2)
-- NVIDIA GPU with CUDA support
-- NVIDIA drivers installed on the host machine
-
-### Building and Running the Docker Container
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/AnonymousLEG-SLAM/LEG-SLAM.git
-cd LEG-SLAM
-```
-
-2. **Build the Docker image:**
-```bash
-docker-compose build
-```
-
-This will:
-- Install all system dependencies (OpenCV with CUDA, ONNX Runtime, PyTorch)
-- Build ORB-SLAM3 and its dependencies
-- Build LEG-SLAM with CUDA support
-- Set up the conda environment with all Python dependencies
-
-3. **Run the Docker container:**
-
-**Option A: Run the API server (recommended for easy access)**
-```bash
-docker-compose up
-```
-
-The API server will be available at `http://localhost:8005`
-
-To run in background:
-```bash
-docker-compose up -d
-```
-
-**Option B: Run interactively**
-```bash
-docker run --gpus all -it --rm \
-  -v $(pwd)/data:/workspace/data:ro \
-  -v $(pwd)/results:/workspace/results \
-  -v $(pwd)/ovs_videos:/workspace/ovs_videos \
-  legs-slam-api /bin/bash
-```
-
-### Using the Docker Container
-
-#### Running LEG-SLAM via API (Easiest Method)
-
-Once the container is running, you can use the REST API:
-
-```python
-import requests
-
-# Run LEG-SLAM processing
-response = requests.post("http://localhost:8005/run_legs_slam", json={
-    "sequence_path": "/workspace/data/Replica/office0/",
-    "output_path": "results/office0"
-})
-
-result = response.json()
-print(f"LEG-SLAM completed: {result['message']}")
-print(f"Output saved to: {result['output_path']}")
-
-# Find objects in a scene
-response = requests.post("http://localhost:8005/find_objects", json={
-    "scene_path": "/workspace/data/Replica/office0",
-    "prompt": "chair",
-    "use_rerun": False,
-    "visualize_trajectory": True
-})
-
-result = response.json()
-print(f"Found {len(result['video_paths'])} video(s)")
-```
-
-#### Running LEG-SLAM via Command Line
-
-Inside the container (or via `docker exec`):
-
-```bash
-# Activate the conda environment
-conda activate legs-slam
-
-# Run LEG-SLAM
-./bin/replica_rgbd \
-    ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
-    ./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml \
-    ./cfg/encoder/pca_encoder_scannet.yaml \
-    ./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml \
-    /workspace/data/Replica/office0/ \
-    results/office0
-```
-
-#### Finding Objects with Text Queries
-
-```bash
-# Inside the container
-conda activate legs-slam
-
-python eval/render_object.py \
-    --scene_path /workspace/data/Replica/office0 \
-    --text_request "trash bin" \
-    --encoder_path cfg/encoder/pca_encoder_imagenet.yaml
-```
-
-Videos will be saved to `/workspace/ovs_videos/` (mounted to `./ovs_videos` on host).
-
-### Volume Mounts
-
-The Docker container uses the following volume mounts:
-
-- `./data:/workspace/data:ro` - Your dataset directory (read-only)
-- `./results:/workspace/results` - Output results directory
-- `./ovs_videos:/workspace/ovs_videos` - Object visualization videos
-- `./cfg:/workspace/cfg:ro` - Configuration files (read-only)
-
-Make sure to place your datasets in the `./data` directory before running the container.
-
-### API Endpoints
-
-- **GET /** - Health check
-- **GET /health** - Detailed health status  
-- **POST /find_objects** - Find objects in a scene
-- **POST /run_legs_slam** - Run LEG-SLAM processing
-
-### Testing the Setup
-
-```bash
-# Run the API test script
-python3 test_api.py
-```
-
-## 🛠️ Native Build (Alternative to Docker)
-
-If you prefer to build natively instead of using Docker:
-
-### Setup and Building
+## Setup and Building
 
 1. Install dependencies and required libraries:
 ```bash
 ./setup.sh
 ```
 
+
 2. Build the project and its dependencies:
 ```bash
 ./build.sh
 ```
 
-### Running the Project
+## Running the Project
+
+### Example Usage
 
 To run the RGBD-SLAM system with Replica dataset:
 
@@ -183,7 +44,7 @@ To run the RGBD-SLAM system with Replica dataset:
 ./bin/replica_rgbd \
     ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
     ./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml \
-    ./cfg/encoder/pca_encoder_scannet.yaml \
+    ./cfg/encoder/Replica/room0.yaml \
     ./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml \
     path/to/Replica/office0/ \
     results/office0
@@ -198,6 +59,106 @@ To run the RGBD-SLAM system with Replica dataset:
 5. `path_to_sequence`: Path to input data sequence
 6. `path_to_trajectory_output_directory`: Directory for saving results
 
+### Note
+Make sure to replace `path/to/Replica/office0/` with the actual path to your Replica dataset.
+
+
+## Object Rendering Example
+
+To train a scene (if not already trained) and render images of a target object using a text request, use the following command:
+
+```bash
+python eval/render_object.py --scene_path path/to/Replica/office0 --text_request "trash bin" --encoder_path cfg/encoder/pca_encoder_imagenet.yaml
+```
+
+This will:
+- Train the scene if it hasn't been trained yet (using the raw frames in the specified directory).
+- Render orbit videos of the detected object(s) matching the text request (e.g., "trash bin").
+- Output videos will be saved in the `ovs_videos` directory with a name based on the scene and request.
+
+## Docker API Server
+
+The project includes a FastAPI server that can handle both object finding and LEGS-SLAM processing:
+
+```bash
+# Start the API server
+docker-compose up
+
+# Or run in background
+docker-compose up -d
+```
+
+The API server will be available at `http://localhost:8005`
+
+### API Endpoints:
+
+- **GET /** - Health check
+- **GET /health** - Detailed health status  
+- **POST /find_objects** - Find objects in a scene
+- **POST /run_legs_slam** - Run LEGS-SLAM processing (with sensible defaults)
+
+### Example API Usage:
+
+```python
+import requests
+
+# Find objects in a scene
+response = requests.post("http://localhost:8005/find_objects", json={
+    "scene_path": "/workspace/data/Replica/office0",
+    "prompt": "chair",
+    "use_rerun": False,
+    "visualize_trajectory": True
+})
+
+result = response.json()
+print(f"Found {len(result['video_paths'])} video(s)")
+for video_path in result['video_paths']:
+    print(f"Video: {video_path}")
+
+# Run LEGS-SLAM processing
+response = requests.post("http://localhost:8005/run_legs_slam", json={
+    "sequence_path": "/workspace/data/Replica/office0/",
+    "output_path": "results/office0"
+})
+
+result = response.json()
+print(f"LEGS-SLAM completed: {result['message']}")
+print(f"Output saved to: {result['output_path']}")
+```
+
+### Default Parameters for LEGS-SLAM:
+
+The API uses these default parameters:
+- **vocabulary_path**: `./ORB-SLAM3/Vocabulary/ORBvoc.txt`
+- **orb_settings_path**: `./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml`
+- **encoder_settings_path**: `./cfg/encoder/pca_encoder_scannet.yaml`
+- **gaussian_settings_path**: `./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml`
+- **output_path**: `results/{SCENE_NAME}` (replace with actual scene name)
+
+You only need to specify `sequence_path` for most use cases!
+
+### Test the API:
+
+```bash
+# Run the test script
+python3 test_api.py
+```
+
+### Docker Build Issues and Solutions
+
+If you encounter CUDA version mismatches or compilation errors during the Docker build, the following fixes have been implemented:
+
+1. **CUDA Version Compatibility**: PyTorch is automatically reinstalled with CUDA 11.8 support
+2. **CUDA Architecture Detection**: Explicit CUDA architectures are specified for compatibility
+3. **Package Dependencies**: Missing package directories are automatically created
+4. **xFormers Compatibility**: xFormers is reinstalled with PyTorch 2.0.1+cu118 support
+
+The Docker container includes all necessary fixes for:
+- CUDA 11.8 compatibility
+- PyTorch 2.0.1 support
+- CUDA extension compilation
+- Package installation issues
+
 ## 📜 Paper
 
 If you find this work useful, please cite:
@@ -210,11 +171,6 @@ If you find this work useful, please cite:
   year={2025}
 }
 ```
-
-## 📄 License
-
-LEG-SLAM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
 ## ⏳ Code Availability
 
-🔹 Full code and models are available in this repository. 🚀
+🔹 Code will be released upon paper acceptance. Stay tuned for updates! 🚀
