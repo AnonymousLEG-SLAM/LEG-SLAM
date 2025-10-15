@@ -1,21 +1,181 @@
-# LEGS-SLAM
+# LEG-SLAM: Real-Time Language-Enhanced Gaussian Splatting for SLAM
 
-## Setup and Building
+![Graphical Abstract](https://github.com/user-attachments/assets/a3b034b9-96ea-4695-b42a-59785103993a)
+
+## Overview
+
+LEG-SLAM is an **open-vocabulary** 3D SLAM system that integrates **3D Gaussian Splatting**, **DINOv2 feature extraction**, and **Talk2DINO language grounding** to enable real-time **semantic 3D scene understanding**. Unlike existing methods, LEG-SLAM allows **text-driven** interactive exploration of reconstructed environments **without predefined object categories**.
+
+### 🔹 Key Features:
+- **Real-time 3D Reconstruction:** High-fidelity scene reconstruction with **Gaussian Splatting**.
+- **Open-Vocabulary Understanding:** Uses **DINOv2** features and **Talk2DINO** to match text queries to visual features.
+- **Efficient Feature Compression:** **PCA-based embedding compression** enables low-latency inference.
+- **Interactive Scene Queries:** Retrieve **semantic masks** in real-time by specifying objects via text.
+- **High-Speed Performance:** Achieves **10 FPS** on **Replica** and **18 FPS** on **ScanNet**, significantly faster than prior methods.
+
+## 🔬 Methodology
+
+1. **DINOv2 Feature Extraction**: Extracts rich, self-supervised embeddings from RGB frames.
+2. **Talk2DINO Language Alignment**: Transforms **text queries** into DINOv2-compatible feature space.
+3. **PCA Compression**: Reduces embeddings from **768D → 64D**, enabling real-time processing.
+4. **3D Gaussian Splatting**: Constructs a continuous, high-resolution 3D scene representation.
+5. **Semantic Querying**: Computes **cosine similarity** between scene embeddings and textual queries, generating **semantic heatmaps**.
+
+## 🐳 Docker Setup
+
+### Prerequisites
+
+- Docker with NVIDIA GPU support (nvidia-docker2)
+- NVIDIA GPU with CUDA support
+- NVIDIA drivers installed on the host machine
+
+### Building and Running the Docker Container
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/AnonymousLEG-SLAM/LEG-SLAM.git
+cd LEG-SLAM
+```
+
+2. **Build the Docker image:**
+```bash
+docker-compose build
+```
+
+This will:
+- Install all system dependencies (OpenCV with CUDA, ONNX Runtime, PyTorch)
+- Build ORB-SLAM3 and its dependencies
+- Build LEG-SLAM with CUDA support
+- Set up the conda environment with all Python dependencies
+
+3. **Run the Docker container:**
+
+**Option A: Run the API server (recommended for easy access)**
+```bash
+docker-compose up
+```
+
+The API server will be available at `http://localhost:8005`
+
+To run in background:
+```bash
+docker-compose up -d
+```
+
+**Option B: Run interactively**
+```bash
+docker run --gpus all -it --rm \
+  -v $(pwd)/data:/workspace/data:ro \
+  -v $(pwd)/results:/workspace/results \
+  -v $(pwd)/ovs_videos:/workspace/ovs_videos \
+  legs-slam-api /bin/bash
+```
+
+### Using the Docker Container
+
+#### Running LEG-SLAM via API (Easiest Method)
+
+Once the container is running, you can use the REST API:
+
+```python
+import requests
+
+# Run LEG-SLAM processing
+response = requests.post("http://localhost:8005/run_legs_slam", json={
+    "sequence_path": "/workspace/data/Replica/office0/",
+    "output_path": "results/office0"
+})
+
+result = response.json()
+print(f"LEG-SLAM completed: {result['message']}")
+print(f"Output saved to: {result['output_path']}")
+
+# Find objects in a scene
+response = requests.post("http://localhost:8005/find_objects", json={
+    "scene_path": "/workspace/data/Replica/office0",
+    "prompt": "chair",
+    "use_rerun": False,
+    "visualize_trajectory": True
+})
+
+result = response.json()
+print(f"Found {len(result['video_paths'])} video(s)")
+```
+
+#### Running LEG-SLAM via Command Line
+
+Inside the container (or via `docker exec`):
+
+```bash
+# Activate the conda environment
+conda activate legs-slam
+
+# Run LEG-SLAM
+./bin/replica_rgbd \
+    ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
+    ./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml \
+    ./cfg/encoder/pca_encoder_scannet.yaml \
+    ./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml \
+    /workspace/data/Replica/office0/ \
+    results/office0
+```
+
+#### Finding Objects with Text Queries
+
+```bash
+# Inside the container
+conda activate legs-slam
+
+python eval/render_object.py \
+    --scene_path /workspace/data/Replica/office0 \
+    --text_request "trash bin" \
+    --encoder_path cfg/encoder/pca_encoder_imagenet.yaml
+```
+
+Videos will be saved to `/workspace/ovs_videos/` (mounted to `./ovs_videos` on host).
+
+### Volume Mounts
+
+The Docker container uses the following volume mounts:
+
+- `./data:/workspace/data:ro` - Your dataset directory (read-only)
+- `./results:/workspace/results` - Output results directory
+- `./ovs_videos:/workspace/ovs_videos` - Object visualization videos
+- `./cfg:/workspace/cfg:ro` - Configuration files (read-only)
+
+Make sure to place your datasets in the `./data` directory before running the container.
+
+### API Endpoints
+
+- **GET /** - Health check
+- **GET /health** - Detailed health status  
+- **POST /find_objects** - Find objects in a scene
+- **POST /run_legs_slam** - Run LEG-SLAM processing
+
+### Testing the Setup
+
+```bash
+# Run the API test script
+python3 test_api.py
+```
+
+## 🛠️ Native Build (Alternative to Docker)
+
+If you prefer to build natively instead of using Docker:
+
+### Setup and Building
 
 1. Install dependencies and required libraries:
 ```bash
 ./setup.sh
 ```
 
-
 2. Build the project and its dependencies:
 ```bash
 ./build.sh
 ```
 
-## Running the Project
-
-### Example Usage
+### Running the Project
 
 To run the RGBD-SLAM system with Replica dataset:
 
@@ -23,7 +183,7 @@ To run the RGBD-SLAM system with Replica dataset:
 ./bin/replica_rgbd \
     ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
     ./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml \
-    ./cfg/encoder/Replica/room0.yaml \
+    ./cfg/encoder/pca_encoder_scannet.yaml \
     ./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml \
     path/to/Replica/office0/ \
     results/office0
@@ -38,101 +198,23 @@ To run the RGBD-SLAM system with Replica dataset:
 5. `path_to_sequence`: Path to input data sequence
 6. `path_to_trajectory_output_directory`: Directory for saving results
 
-### Note
-Make sure to replace `path/to/Replica/office0/` with the actual path to your Replica dataset.
+## 📜 Paper
 
+If you find this work useful, please cite:
 
-## Object Rendering Example
-
-To train a scene (if not already trained) and render images of a target object using a text request, use the following command:
-
-```bash
-python eval/render_object.py --scene_path path/to/Replica/office0 --text_request "trash bin" --encoder_path cfg/encoder/pca_encoder_imagenet.yaml
+```bibtex
+@article{LEG-SLAM,
+  title={LEG-SLAM: Open-Vocabulary 3D Gaussian Splatting for SLAM},
+  author={Anonymous Authors},
+  journal={Under Review at ICCV 2025},
+  year={2025}
+}
 ```
 
-This will:
-- Train the scene if it hasn't been trained yet (using the raw frames in the specified directory).
-- Render orbit videos of the detected object(s) matching the text request (e.g., "trash bin").
-- Output videos will be saved in the `ovs_videos` directory with a name based on the scene and request.
+## 📄 License
 
-## Docker API Server
+LEG-SLAM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-The project includes a FastAPI server that can handle both object finding and LEGS-SLAM processing:
+## ⏳ Code Availability
 
-```bash
-# Start the API server
-docker-compose up
-
-# Or run in background
-docker-compose up -d
-```
-
-The API server will be available at `http://localhost:8005`
-
-### API Endpoints:
-
-- **GET /** - Health check
-- **GET /health** - Detailed health status  
-- **POST /find_objects** - Find objects in a scene
-- **POST /run_legs_slam** - Run LEGS-SLAM processing (with sensible defaults)
-
-### Example API Usage:
-
-```python
-import requests
-
-# Find objects in a scene
-response = requests.post("http://localhost:8005/find_objects", json={
-    "scene_path": "/workspace/data/Replica/office0",
-    "prompt": "chair",
-    "use_rerun": False,
-    "visualize_trajectory": True
-})
-
-result = response.json()
-print(f"Found {len(result['video_paths'])} video(s)")
-for video_path in result['video_paths']:
-    print(f"Video: {video_path}")
-
-# Run LEGS-SLAM processing
-response = requests.post("http://localhost:8005/run_legs_slam", json={
-    "sequence_path": "/workspace/data/Replica/office0/",
-    "output_path": "results/office0"
-})
-
-result = response.json()
-print(f"LEGS-SLAM completed: {result['message']}")
-print(f"Output saved to: {result['output_path']}")
-```
-
-### Default Parameters for LEGS-SLAM:
-
-The API uses these default parameters:
-- **vocabulary_path**: `./ORB-SLAM3/Vocabulary/ORBvoc.txt`
-- **orb_settings_path**: `./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml`
-- **encoder_settings_path**: `./cfg/encoder/pca_encoder_scannet.yaml`
-- **gaussian_settings_path**: `./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml`
-- **output_path**: `results/{SCENE_NAME}` (replace with actual scene name)
-
-You only need to specify `sequence_path` for most use cases!
-
-### Test the API:
-
-```bash
-# Run the test script
-python3 test_api.py
-```
-
-### Docker Build Issues and Solutions
-
-If you encounter CUDA version mismatches or compilation errors during the Docker build, the following fixes have been implemented:
-
-1. **CUDA Version Compatibility**: PyTorch is automatically reinstalled with CUDA 11.8 support
-2. **CUDA Architecture Detection**: Explicit CUDA architectures are specified for compatibility
-3. **Package Dependencies**: Missing package directories are automatically created
-4. **xFormers Compatibility**: xFormers is reinstalled with PyTorch 2.0.1+cu118 support
-The Docker container includes all necessary fixes for:
-- CUDA 11.8 compatibility
-- PyTorch 2.0.1 support
-- CUDA extension compilation
-- Package installation issues
+🔹 Full code and models are available in this repository. 🚀
