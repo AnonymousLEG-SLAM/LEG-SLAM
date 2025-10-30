@@ -167,10 +167,10 @@ If you find this work useful, please cite:
 @article{LEG-SLAM,
   title={LEG-SLAM: Open-Vocabulary 3D Gaussian Splatting for SLAM},
   author={Anonymous Authors},
-  journal={Under Review at ICCV 2025},
+  journal={Submitted ICRA 2026},
   year={2025}
 }
 ```
 ## ⏳ Code Availability
 
-🔹 Code will be released upon paper acceptance. Stay tuned for updates! 🚀
+🔹 Stay tuned for updates! 🚀
