@@ -13,6 +13,14 @@ LEG-SLAM is an **open-vocabulary** 3D SLAM system that integrates **3D Gaussian 
 - **Interactive Scene Queries:** Retrieve **semantic masks** in real-time by specifying objects via text.
 - **High-Speed Performance:** Achieves **10 FPS** on **Replica** and **18 FPS** on **ScanNet**, significantly faster than prior methods.
 
+## 🔬 Methodology
+
+1. **DINOv2 Feature Extraction**: Extracts rich, self-supervised embeddings from RGB frames.
+2. **Talk2DINO Language Alignment**: Transforms **text queries** into DINOv2-compatible feature space.
+3. **PCA Compression**: Reduces embeddings from **768D → 64D**, enabling real-time processing.
+4. **3D Gaussian Splatting**: Constructs a continuous, high-resolution 3D scene representation.
+5. **Semantic Querying**: Computes **cosine similarity** between scene embeddings and textual queries, generating **semantic heatmaps**.
+
 ## Requirements
 
 The following requirements are essential for building and running LEG-SLAM:
@@ -23,14 +31,6 @@ The following requirements are essential for building and running LEG-SLAM:
 - **ONNX Model Files** - Required ONNX model files:
   - `dinov2.onnx` - DINOv2 feature extraction model
   - `pca_text_emb64_imagenet.onnx` or `pca_text_emb64_scannet.onnx` - PCA compressor models
-
-## 🔬 Methodology
-
-1. **DINOv2 Feature Extraction**: Extracts rich, self-supervised embeddings from RGB frames.
-2. **Talk2DINO Language Alignment**: Transforms **text queries** into DINOv2-compatible feature space.
-3. **PCA Compression**: Reduces embeddings from **768D → 64D**, enabling real-time processing.
-4. **3D Gaussian Splatting**: Constructs a continuous, high-resolution 3D scene representation.
-5. **Semantic Querying**: Computes **cosine similarity** between scene embeddings and textual queries, generating **semantic heatmaps**.
 
 ## Setup and Building
 
