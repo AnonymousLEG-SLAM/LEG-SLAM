@@ -13,6 +13,17 @@ LEG-SLAM is an **open-vocabulary** 3D SLAM system that integrates **3D Gaussian 
 - **Interactive Scene Queries:** Retrieve **semantic masks** in real-time by specifying objects via text.
 - **High-Speed Performance:** Achieves **10 FPS** on **Replica** and **18 FPS** on **ScanNet**, significantly faster than prior methods.
 
+## Requirements
+
+The following requirements are essential for building and running LEG-SLAM:
+
+- **CUDA Toolkit 11.8** - Required for GPU acceleration and CUDA compilation
+- **NVCC (NVIDIA CUDA Compiler)** - Required for compiling CUDA extensions (`nvcc --version` to verify)
+- **PyTorch** - PyTorch 2.0.1 with CUDA 11.8 support (libtorch C++ API)
+- **ONNX Model Files** - Required ONNX model files:
+  - `dinov2.onnx` - DINOv2 feature extraction model
+  - `pca_text_emb64_imagenet.onnx` or `pca_text_emb64_scannet.onnx` - PCA compressor models
+
 ## 🔬 Methodology
 
 1. **DINOv2 Feature Extraction**: Extracts rich, self-supervised embeddings from RGB frames.
